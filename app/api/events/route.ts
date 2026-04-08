@@ -39,6 +39,7 @@ export async function GET() {
       no_count: rsvps.filter((r) => r.status === 'no').length,
       going_rsvps: rsvps.filter((r) => r.status === 'yes').map(toPreview),
       maybe_rsvps: rsvps.filter((r) => r.status === 'maybe').map(toPreview),
+      no_rsvps: rsvps.filter((r) => r.status === 'no').map(toPreview),
       rsvps: undefined,
     };
   });

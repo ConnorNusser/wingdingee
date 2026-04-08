@@ -58,4 +58,5 @@ export interface EventWithCounts extends Event {
   no_count: number;
   going_rsvps: RsvpPreview[];
   maybe_rsvps: RsvpPreview[];
+  no_rsvps: RsvpPreview[];
 }

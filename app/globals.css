@@ -544,6 +544,25 @@ textarea {
   margin-left: 2px;
 }
 
+.avatar-green {
+  border-color: var(--green);
+  box-shadow: 2px 2px 0 var(--green);
+  background: var(--green-bg);
+}
+
+.avatar-orange {
+  border-color: var(--orange);
+  box-shadow: 2px 2px 0 var(--orange);
+  background: var(--orange-bg);
+}
+
+.avatar-slate {
+  border-color: var(--slate);
+  box-shadow: 2px 2px 0 var(--slate);
+  background: var(--slate-bg);
+  opacity: 0.7;
+}
+
 .event-rsvp-label {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -554,6 +573,7 @@ textarea {
 
 .going-label { color: var(--green); }
 .maybe-label { color: var(--orange); }
+.no-label    { color: var(--slate); }
 
 .count-pill {
   display: inline-flex;

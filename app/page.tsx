@@ -5,9 +5,11 @@ import { useUser } from '@/components/UserProvider';
 import Login from '@/components/Login';
 import type { EventWithCounts, RsvpPreview } from '@/lib/supabase';
 
-const MAX_VISIBLE = 6;
+const MAX_VISIBLE = 5;
 
-function AvatarRow({ rsvps, total }: { rsvps: RsvpPreview[]; total: number }) {
+type RsvpColor = 'green' | 'orange' | 'slate';
+
+function AvatarRow({ rsvps, total, color }: { rsvps: RsvpPreview[]; total: number; color: RsvpColor }) {
   const visible = rsvps.slice(0, MAX_VISIBLE);
   const overflow = total - visible.length;
   return (
@@ -15,7 +17,7 @@ function AvatarRow({ rsvps, total }: { rsvps: RsvpPreview[]; total: number }) {
       {visible.map((r) => (
         <div
           key={r.user_id}
-          className="avatar avatar-sm avatar-row-item"
+          className={`avatar avatar-sm avatar-row-item avatar-${color}`}
           title={r.display_name}
         >
           {r.avatar ? <img src={r.avatar} alt={r.display_name} /> : r.display_name[0]?.toUpperCase()}
@@ -88,7 +90,8 @@ export default function HomePage() {
 function EventItem({ event, muted }: { event: EventWithCounts; muted?: boolean }) {
   const going = event.going_rsvps ?? [];
   const maybe = event.maybe_rsvps ?? [];
-  const hasRsvps = going.length > 0 || maybe.length > 0;
+  const no = event.no_rsvps ?? [];
+  const hasRsvps = going.length > 0 || maybe.length > 0 || no.length > 0;
 
   return (
     <Link href={`/events/${event.slug}`} style={{ textDecoration: 'none' }}>
@@ -104,14 +107,20 @@ function EventItem({ event, muted }: { event: EventWithCounts; muted?: boolean }
           <div className="event-rsvp-row">
             {going.length > 0 && (
               <div className="event-rsvp-group">
-                <AvatarRow rsvps={going} total={event.yes_count} />
+                <AvatarRow rsvps={going} total={event.yes_count} color="green" />
                 <span className="event-rsvp-label going-label">{event.yes_count} going</span>
               </div>
             )}
             {maybe.length > 0 && (
               <div className="event-rsvp-group">
-                <AvatarRow rsvps={maybe} total={event.maybe_count} />
+                <AvatarRow rsvps={maybe} total={event.maybe_count} color="orange" />
                 <span className="event-rsvp-label maybe-label">{event.maybe_count} maybe</span>
+              </div>
+            )}
+            {no.length > 0 && (
+              <div className="event-rsvp-group">
+                <AvatarRow rsvps={no} total={event.no_count} color="slate" />
+                <span className="event-rsvp-label no-label">{event.no_count} out</span>
               </div>
             )}
           </div>
