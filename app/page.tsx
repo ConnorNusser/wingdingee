@@ -5,27 +5,55 @@ import { useUser } from '@/components/UserProvider';
 import Login from '@/components/Login';
 import type { EventWithCounts, RsvpPreview } from '@/lib/supabase';
 
-const MAX_VISIBLE = 5;
+const MAX_VISIBLE = 4;
 
 type RsvpColor = 'green' | 'orange' | 'slate';
 
-function AvatarRow({ rsvps, total, color }: { rsvps: RsvpPreview[]; total: number; color: RsvpColor }) {
-  const visible = rsvps.slice(0, MAX_VISIBLE);
-  const overflow = total - visible.length;
+function nameList(rsvps: RsvpPreview[], total: number): string {
+  const names = rsvps.slice(0, MAX_VISIBLE).map((r) => r.display_name.split(' ')[0]);
+  const overflow = total - names.length;
+  if (overflow > 0) return names.join(', ') + ` +${overflow}`;
+  return names.join(', ');
+}
+
+function RsvpGroup({
+  rsvps,
+  total,
+  color,
+  label,
+  icon,
+}: {
+  rsvps: RsvpPreview[];
+  total: number;
+  color: RsvpColor;
+  label: string;
+  icon?: string;
+}) {
   return (
-    <div className="avatar-row">
-      {visible.map((r) => (
-        <div
-          key={r.user_id}
-          className={`avatar avatar-sm avatar-row-item avatar-${color}`}
-          title={r.display_name}
-        >
-          {r.avatar ? <img src={r.avatar} alt={r.display_name} /> : r.display_name[0]?.toUpperCase()}
+    <div className="rsvp-block">
+      <div className="rsvp-block-header">
+        <span className={`rsvp-block-label rsvp-label-${color}`}>
+          {icon && <span className="rsvp-icon">{icon}</span>}
+          {label}
+        </span>
+      </div>
+      <div className="rsvp-block-people">
+        <div className="avatar-row">
+          {rsvps.slice(0, MAX_VISIBLE).map((r) => (
+            <div
+              key={r.user_id}
+              className={`avatar avatar-sm avatar-row-item avatar-${color}`}
+              title={r.display_name}
+            >
+              {r.avatar ? <img src={r.avatar} alt={r.display_name} /> : r.display_name[0]?.toUpperCase()}
+            </div>
+          ))}
+          {total > MAX_VISIBLE && (
+            <div className="avatar avatar-sm avatar-row-overflow">+{total - MAX_VISIBLE}</div>
+          )}
         </div>
-      ))}
-      {overflow > 0 && (
-        <div className="avatar avatar-sm avatar-row-overflow">+{overflow}</div>
-      )}
+        <span className={`rsvp-names rsvp-names-${color}`}>{nameList(rsvps, total)}</span>
+      </div>
     </div>
   );
 }
@@ -104,24 +132,15 @@ function EventItem({ event, muted }: { event: EventWithCounts; muted?: boolean }
         </div>
 
         {hasRsvps ? (
-          <div className="event-rsvp-row">
+          <div className="rsvp-blocks">
             {going.length > 0 && (
-              <div className="event-rsvp-group">
-                <AvatarRow rsvps={going} total={event.yes_count} color="green" />
-                <span className="event-rsvp-label going-label">{event.yes_count} going</span>
-              </div>
+              <RsvpGroup rsvps={going} total={event.yes_count} color="green" label="going" icon="✓" />
             )}
             {maybe.length > 0 && (
-              <div className="event-rsvp-group">
-                <AvatarRow rsvps={maybe} total={event.maybe_count} color="orange" />
-                <span className="event-rsvp-label maybe-label">{event.maybe_count} maybe</span>
-              </div>
+              <RsvpGroup rsvps={maybe} total={event.maybe_count} color="orange" label="maybe" icon="?" />
             )}
             {no.length > 0 && (
-              <div className="event-rsvp-group">
-                <AvatarRow rsvps={no} total={event.no_count} color="slate" />
-                <span className="event-rsvp-label no-label">{event.no_count} out</span>
-              </div>
+              <RsvpGroup rsvps={no} total={event.no_count} color="slate" label="out" icon="✗" />
             )}
           </div>
         ) : (
