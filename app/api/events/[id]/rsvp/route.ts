@@ -10,8 +10,9 @@ export async function POST(req: Request, { params }: Params) {
     user_id?: string;
     display_name?: string;
     status?: string;
+    avatar?: string;
   };
-  const { user_id, display_name, status } = body;
+  const { user_id, display_name, status, avatar } = body;
 
   const validStatuses: RsvpStatus[] = ['yes', 'no', 'maybe'];
   if (!user_id || !display_name || !status || !validStatuses.includes(status as RsvpStatus)) {
@@ -37,6 +38,7 @@ export async function POST(req: Request, { params }: Params) {
         user_id,
         display_name,
         status: status as RsvpStatus,
+        data: { avatar: avatar ?? '' },
       },
       { onConflict: 'event_id,user_id' }
     );

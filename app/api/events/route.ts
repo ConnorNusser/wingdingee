@@ -17,19 +17,31 @@ function generateSlug(title: string): string {
 export async function GET() {
   const { data, error } = await supabase
     .from('events')
-    .select('*, rsvps(status)')
+    .select('*, rsvps(status, display_name, user_id, data)')
     .order('date', { ascending: true })
     .order('start_time', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const events: EventWithCounts[] = (data ?? []).map((e) => ({
-    ...e,
-    yes_count: (e.rsvps as { status: string }[])?.filter((r) => r.status === 'yes').length ?? 0,
-    maybe_count: (e.rsvps as { status: string }[])?.filter((r) => r.status === 'maybe').length ?? 0,
-    no_count: (e.rsvps as { status: string }[])?.filter((r) => r.status === 'no').length ?? 0,
-    rsvps: undefined,
-  }));
+  type RsvpRow = { status: string; display_name: string; user_id: string; data: Record<string, unknown> };
+
+  const events: EventWithCounts[] = (data ?? []).map((e) => {
+    const rsvps = (e.rsvps as RsvpRow[]) ?? [];
+    const toPreview = (r: RsvpRow) => ({
+      user_id: r.user_id,
+      display_name: r.display_name,
+      avatar: r.data?.avatar as string | undefined,
+    });
+    return {
+      ...e,
+      yes_count: rsvps.filter((r) => r.status === 'yes').length,
+      maybe_count: rsvps.filter((r) => r.status === 'maybe').length,
+      no_count: rsvps.filter((r) => r.status === 'no').length,
+      going_rsvps: rsvps.filter((r) => r.status === 'yes').map(toPreview),
+      maybe_rsvps: rsvps.filter((r) => r.status === 'maybe').map(toPreview),
+      rsvps: undefined,
+    };
+  });
 
   return NextResponse.json(events);
 }

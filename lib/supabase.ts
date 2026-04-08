@@ -46,8 +46,16 @@ export interface EventWithRsvps extends Event {
   rsvps: Rsvp[];
 }
 
+export interface RsvpPreview {
+  user_id: string;
+  display_name: string;
+  avatar?: string;
+}
+
 export interface EventWithCounts extends Event {
   yes_count: number;
   maybe_count: number;
   no_count: number;
+  going_rsvps: RsvpPreview[];
+  maybe_rsvps: RsvpPreview[];
 }

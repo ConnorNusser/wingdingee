@@ -28,7 +28,12 @@ export default function EventPage() {
     const res = await fetch(`/api/events/${slug}/rsvp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: user.id, display_name: user.display_name, status }),
+      body: JSON.stringify({
+        user_id: user.id,
+        display_name: user.display_name,
+        status,
+        avatar: (user.data?.avatar as string) ?? '',
+      }),
     });
     if (res.ok) setEvent(await res.json() as EventWithRsvps);
     setRsvping(false);
@@ -107,14 +112,14 @@ export default function EventPage() {
       {maybe.length > 0 && (
         <div className="section">
           <h2>maybe — {maybe.length}</h2>
-          <AttendeeList rsvps={maybe} currentUserId={user.id} statusClass="status-maybe" />
+          <AttendeeList rsvps={maybe} currentUserId={user.id} />
         </div>
       )}
 
       {notGoing.length > 0 && (
         <div className="section">
           <h2>can&apos;t make it — {notGoing.length}</h2>
-          <AttendeeList rsvps={notGoing} currentUserId={user.id} statusClass="status-no" />
+          <AttendeeList rsvps={notGoing} currentUserId={user.id} muted />
         </div>
       )}
 
@@ -134,20 +139,32 @@ export default function EventPage() {
   );
 }
 
-function AttendeeList({
-  rsvps,
-  currentUserId,
-  statusClass,
-}: {
-  rsvps: Rsvp[];
-  currentUserId: string;
-  statusClass?: string;
-}) {
+function UserAvatar({ displayName, avatar, isYou }: { displayName: string; avatar?: string; isYou?: boolean }) {
+  const initial = displayName[0]?.toUpperCase() ?? '?';
+  return (
+    <div
+      className="avatar avatar-sm"
+      style={isYou ? { border: '2px solid var(--green)', boxShadow: '2px 2px 0 var(--green)' } : {}}
+      title={displayName + (isYou ? ' (you)' : '')}
+    >
+      {avatar ? <img src={avatar} alt={displayName} /> : initial}
+    </div>
+  );
+}
+
+function AttendeeList({ rsvps, currentUserId, muted }: { rsvps: Rsvp[]; currentUserId: string; muted?: boolean }) {
   return (
     <ul className="attendee-list">
       {rsvps.map((r) => (
-        <li key={r.id} className="attendee-item">
-          <span className={statusClass}>{r.display_name}</span>
+        <li key={r.id} className="attendee-item" style={muted ? { opacity: 0.55 } : {}}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <UserAvatar
+              displayName={r.display_name}
+              avatar={(r.data?.avatar as string) || undefined}
+              isYou={r.user_id === currentUserId}
+            />
+            <span style={{ fontWeight: 600 }}>{r.display_name}</span>
+          </div>
           {r.user_id === currentUserId && <span className="you-tag">you</span>}
         </li>
       ))}

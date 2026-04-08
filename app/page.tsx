@@ -3,7 +3,30 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/components/UserProvider';
 import Login from '@/components/Login';
-import type { EventWithCounts } from '@/lib/supabase';
+import type { EventWithCounts, RsvpPreview } from '@/lib/supabase';
+
+const MAX_VISIBLE = 6;
+
+function AvatarRow({ rsvps, total }: { rsvps: RsvpPreview[]; total: number }) {
+  const visible = rsvps.slice(0, MAX_VISIBLE);
+  const overflow = total - visible.length;
+  return (
+    <div className="avatar-row">
+      {visible.map((r) => (
+        <div
+          key={r.user_id}
+          className="avatar avatar-sm avatar-row-item"
+          title={r.display_name}
+        >
+          {r.avatar ? <img src={r.avatar} alt={r.display_name} /> : r.display_name[0]?.toUpperCase()}
+        </div>
+      ))}
+      {overflow > 0 && (
+        <div className="avatar avatar-sm avatar-row-overflow">+{overflow}</div>
+      )}
+    </div>
+  );
+}
 
 export default function HomePage() {
   const { user, loaded } = useUser();
@@ -63,6 +86,10 @@ export default function HomePage() {
 }
 
 function EventItem({ event, muted }: { event: EventWithCounts; muted?: boolean }) {
+  const going = event.going_rsvps ?? [];
+  const maybe = event.maybe_rsvps ?? [];
+  const hasRsvps = going.length > 0 || maybe.length > 0;
+
   return (
     <Link href={`/events/${event.slug}`} style={{ textDecoration: 'none' }}>
       <div className="event-item" style={muted ? { opacity: 0.45 } : {}}>
@@ -72,17 +99,25 @@ function EventItem({ event, muted }: { event: EventWithCounts; muted?: boolean }
           {event.location ? ` · ${event.location}` : ''}
           {' · '}by {event.host_name}
         </div>
-        <div className="event-counts">
-          {event.yes_count > 0 && (
-            <span className="count-pill count-pill-yes">{event.yes_count} going</span>
-          )}
-          {event.maybe_count > 0 && (
-            <span className="count-pill count-pill-maybe">{event.maybe_count} maybe</span>
-          )}
-          {event.yes_count === 0 && event.maybe_count === 0 && (
-            <span className="text-muted">no rsvps yet</span>
-          )}
-        </div>
+
+        {hasRsvps ? (
+          <div className="event-rsvp-row">
+            {going.length > 0 && (
+              <div className="event-rsvp-group">
+                <AvatarRow rsvps={going} total={event.yes_count} />
+                <span className="event-rsvp-label going-label">{event.yes_count} going</span>
+              </div>
+            )}
+            {maybe.length > 0 && (
+              <div className="event-rsvp-group">
+                <AvatarRow rsvps={maybe} total={event.maybe_count} />
+                <span className="event-rsvp-label maybe-label">{event.maybe_count} maybe</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-muted" style={{ fontSize: '12px', marginTop: '10px' }}>no rsvps yet</p>
+        )}
       </div>
     </Link>
   );
