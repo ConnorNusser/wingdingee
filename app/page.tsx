@@ -9,6 +9,27 @@ const MAX_VISIBLE = 4;
 
 type RsvpColor = 'green' | 'orange' | 'slate';
 
+const ROASTS = [
+  (n: string) => `we hate ${n} 😤`,
+  (n: string) => `${n} is a party pooper 🙄`,
+  (n: string) => `boo ${n} 👎`,
+  (n: string) => `${n} is officially uninvited from future events`,
+  (n: string) => `rip ${n}'s social life 💀`,
+  (n: string) => `${n} is not our friend anymore`,
+  (n: string) => `${n} can't handle a good time apparently`,
+  (n: string) => `someone drag ${n} out of bed`,
+  (n: string) => `${n} is scared 😂`,
+  (n: string) => `${n} has betrayed us`,
+];
+
+function getRoast(rsvps: RsvpPreview[], total: number): string {
+  const firstName = rsvps[0].display_name.split(' ')[0];
+  const overflow = total - 1;
+  const subject = overflow > 0 ? `${firstName} & ${overflow} other${overflow > 1 ? 's' : ''}` : firstName;
+  const idx = (firstName.length + total) % ROASTS.length;
+  return ROASTS[idx](subject);
+}
+
 function nameList(rsvps: RsvpPreview[], total: number): string {
   const names = rsvps.slice(0, MAX_VISIBLE).map((r) => r.display_name.split(' ')[0]);
   const overflow = total - names.length;
@@ -16,23 +37,49 @@ function nameList(rsvps: RsvpPreview[], total: number): string {
   return names.join(', ');
 }
 
+// Deterministic color from first char of display name
+const INITIAL_COLORS = ['#f5d400','#00c853','#ff6d00','#4fc3f7','#ce93d8','#ef9a9a','#80cbc4','#ffcc02','#aed581','#ff8a65'];
+function initialColor(name: string): string {
+  const idx = (name.charCodeAt(0) ?? 0) % INITIAL_COLORS.length;
+  return INITIAL_COLORS[idx];
+}
+
+function UserAvatarSmall({ r, ringColor }: { r: RsvpPreview; ringColor: string }) {
+  const bg = initialColor(r.display_name);
+  return (
+    <div
+      className="avatar avatar-sm avatar-row-item"
+      title={r.display_name}
+      style={{
+        background: r.avatar ? undefined : bg,
+        borderColor: ringColor,
+        boxShadow: `2px 2px 0 ${ringColor}`,
+      }}
+    >
+      {r.avatar ? <img src={r.avatar} alt={r.display_name} /> : r.display_name[0]?.toUpperCase()}
+    </div>
+  );
+}
+
 function RsvpGroup({
   rsvps,
   total,
-  color,
+  ringColor,
   label,
   icon,
+  roast,
 }: {
   rsvps: RsvpPreview[];
   total: number;
-  color: RsvpColor;
+  ringColor: string;
   label: string;
   icon?: string;
+  roast?: string;
 }) {
   return (
     <div className="rsvp-block">
       <div className="rsvp-block-header">
-        <span className={`rsvp-block-label rsvp-label-${color}`}>
+        <span className="rsvp-block-label" style={{ color: ringColor }}>
           {icon && <span className="rsvp-icon">{icon}</span>}
           {label}
         </span>
@@ -40,20 +87,17 @@ function RsvpGroup({
       <div className="rsvp-block-people">
         <div className="avatar-row">
           {rsvps.slice(0, MAX_VISIBLE).map((r) => (
-            <div
-              key={r.user_id}
-              className={`avatar avatar-sm avatar-row-item avatar-${color}`}
-              title={r.display_name}
-            >
-              {r.avatar ? <img src={r.avatar} alt={r.display_name} /> : r.display_name[0]?.toUpperCase()}
-            </div>
+            <UserAvatarSmall key={r.user_id} r={r} ringColor={ringColor} />
           ))}
           {total > MAX_VISIBLE && (
             <div className="avatar avatar-sm avatar-row-overflow">+{total - MAX_VISIBLE}</div>
           )}
         </div>
-        <span className={`rsvp-names rsvp-names-${color}`}>{nameList(rsvps, total)}</span>
+        <span className="rsvp-names" style={{ color: ringColor === 'var(--slate)' ? 'var(--muted)' : 'var(--text)', textDecoration: roast ? 'line-through' : 'none', textDecorationColor: ringColor }}>
+          {nameList(rsvps, total)}
+        </span>
       </div>
+      {roast && <p className="rsvp-roast">{roast}</p>}
     </div>
   );
 }
@@ -134,13 +178,13 @@ function EventItem({ event, muted }: { event: EventWithCounts; muted?: boolean }
         {hasRsvps ? (
           <div className="rsvp-blocks">
             {going.length > 0 && (
-              <RsvpGroup rsvps={going} total={event.yes_count} color="green" label="going" icon="✓" />
+              <RsvpGroup rsvps={going} total={event.yes_count} ringColor="var(--green)" label="going" icon="✓" />
             )}
             {maybe.length > 0 && (
-              <RsvpGroup rsvps={maybe} total={event.maybe_count} color="orange" label="maybe" icon="?" />
+              <RsvpGroup rsvps={maybe} total={event.maybe_count} ringColor="var(--orange)" label="maybe" icon="?" />
             )}
             {no.length > 0 && (
-              <RsvpGroup rsvps={no} total={event.no_count} color="slate" label="out" icon="✗" />
+              <RsvpGroup rsvps={no} total={event.no_count} ringColor="var(--slate)" label="out" icon="✗" roast={getRoast(no, event.no_count)} />
             )}
           </div>
         ) : (

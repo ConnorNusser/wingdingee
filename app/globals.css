@@ -576,9 +576,13 @@ textarea {
   line-height: 1.3;
 }
 
-.rsvp-names-green  { color: var(--text); }
-.rsvp-names-orange { color: var(--text); }
-.rsvp-names-slate  { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--slate); }
+.rsvp-roast {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--slate);
+  margin-top: 5px;
+  font-style: italic;
+}
 
 .count-pill {
   display: inline-flex;
