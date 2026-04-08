@@ -6,6 +6,32 @@ import { useUser } from '@/components/UserProvider';
 import Login from '@/components/Login';
 import type { EventWithRsvps, Rsvp, RsvpStatus } from '@/lib/supabase';
 
+const INITIAL_COLORS = ['#f5d400','#00c853','#ff6d00','#4fc3f7','#ce93d8','#ef9a9a','#80cbc4','#ffcc02','#aed581','#ff8a65'];
+function initialColor(name: string): string {
+  return INITIAL_COLORS[(name.charCodeAt(0) ?? 0) % INITIAL_COLORS.length];
+}
+
+const ROASTS = [
+  (n: string) => `we hate ${n} 😤`,
+  (n: string) => `${n} is a party pooper 🙄`,
+  (n: string) => `boo ${n} 👎`,
+  (n: string) => `${n} is officially uninvited from future events`,
+  (n: string) => `rip ${n}'s social life 💀`,
+  (n: string) => `${n} is not our friend anymore`,
+  (n: string) => `${n} can't handle a good time apparently`,
+  (n: string) => `someone drag ${n} out of bed`,
+  (n: string) => `${n} is scared 😂`,
+  (n: string) => `${n} has betrayed us`,
+];
+
+function getRoast(rsvps: Rsvp[]): string {
+  const firstName = rsvps[0].display_name.split(' ')[0];
+  const overflow = rsvps.length - 1;
+  const subject = overflow > 0 ? `${firstName} & ${overflow} other${overflow > 1 ? 's' : ''}` : firstName;
+  const idx = (firstName.length + rsvps.length) % ROASTS.length;
+  return ROASTS[idx](subject);
+}
+
 export default function EventPage() {
   const { id: slug } = useParams<{ id: string }>();
   const router = useRouter();
@@ -52,10 +78,10 @@ export default function EventPage() {
   if (!event) return <main className="container"><p>event not found. <Link href="/">← back</Link></p></main>;
 
   const rsvps: Rsvp[] = event.rsvps ?? [];
-  const myRsvp = rsvps.find((r) => r.user_id === user.id)?.status;
-  const going    = rsvps.filter((r) => r.status === 'yes');
-  const maybe    = rsvps.filter((r) => r.status === 'maybe');
-  const notGoing = rsvps.filter((r) => r.status === 'no');
+  const myRsvp    = rsvps.find((r) => r.user_id === user.id)?.status;
+  const going     = rsvps.filter((r) => r.status === 'yes');
+  const maybe     = rsvps.filter((r) => r.status === 'maybe');
+  const notGoing  = rsvps.filter((r) => r.status === 'no');
 
   return (
     <main className="container">
@@ -104,22 +130,23 @@ export default function EventPage() {
 
       {going.length > 0 && (
         <div className="section">
-          <h2>going — {going.length}</h2>
-          <AttendeeList rsvps={going} currentUserId={user.id} />
+          <h2>✓ going — {going.length}</h2>
+          <AttendeeList rsvps={going} currentUserId={user.id} accentColor="var(--green)" />
         </div>
       )}
 
       {maybe.length > 0 && (
         <div className="section">
-          <h2>maybe — {maybe.length}</h2>
-          <AttendeeList rsvps={maybe} currentUserId={user.id} />
+          <h2>? maybe — {maybe.length}</h2>
+          <AttendeeList rsvps={maybe} currentUserId={user.id} accentColor="var(--orange)" />
         </div>
       )}
 
       {notGoing.length > 0 && (
         <div className="section">
-          <h2>can&apos;t make it — {notGoing.length}</h2>
-          <AttendeeList rsvps={notGoing} currentUserId={user.id} muted />
+          <h2>✗ out — {notGoing.length}</h2>
+          <AttendeeList rsvps={notGoing} currentUserId={user.id} accentColor="var(--slate)" muted />
+          <p className="rsvp-roast" style={{ marginTop: '10px' }}>{getRoast(notGoing)}</p>
         </div>
       )}
 
@@ -139,35 +166,46 @@ export default function EventPage() {
   );
 }
 
-function UserAvatar({ displayName, avatar, isYou }: { displayName: string; avatar?: string; isYou?: boolean }) {
-  const initial = displayName[0]?.toUpperCase() ?? '?';
-  return (
-    <div
-      className="avatar avatar-sm"
-      style={isYou ? { border: '2px solid var(--green)', boxShadow: '2px 2px 0 var(--green)' } : {}}
-      title={displayName + (isYou ? ' (you)' : '')}
-    >
-      {avatar ? <img src={avatar} alt={displayName} /> : initial}
-    </div>
-  );
-}
-
-function AttendeeList({ rsvps, currentUserId, muted }: { rsvps: Rsvp[]; currentUserId: string; muted?: boolean }) {
+function AttendeeList({ rsvps, currentUserId, accentColor, muted }: {
+  rsvps: Rsvp[];
+  currentUserId: string;
+  accentColor: string;
+  muted?: boolean;
+}) {
   return (
     <ul className="attendee-list">
-      {rsvps.map((r) => (
-        <li key={r.id} className="attendee-item" style={muted ? { opacity: 0.55 } : {}}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <UserAvatar
-              displayName={r.display_name}
-              avatar={(r.data?.avatar as string) || undefined}
-              isYou={r.user_id === currentUserId}
-            />
-            <span style={{ fontWeight: 600 }}>{r.display_name}</span>
-          </div>
-          {r.user_id === currentUserId && <span className="you-tag">you</span>}
-        </li>
-      ))}
+      {rsvps.map((r) => {
+        const isYou = r.user_id === currentUserId;
+        const avatar = (r.data?.avatar as string) || undefined;
+        const bg = initialColor(r.display_name);
+        return (
+          <li key={r.id} className="attendee-item" style={muted ? { opacity: 0.6 } : {}}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                className="avatar avatar-sm"
+                title={r.display_name}
+                style={{
+                  background: avatar ? undefined : bg,
+                  borderColor: isYou ? 'var(--green)' : accentColor,
+                  boxShadow: `2px 2px 0 ${isYou ? 'var(--green)' : accentColor}`,
+                  textDecoration: muted ? 'line-through' : 'none',
+                }}
+              >
+                {avatar ? <img src={avatar} alt={r.display_name} /> : r.display_name[0]?.toUpperCase()}
+              </div>
+              <span style={{
+                fontWeight: 600,
+                textDecoration: muted ? 'line-through' : 'none',
+                textDecorationColor: 'var(--slate)',
+                color: muted ? 'var(--muted)' : 'var(--text)',
+              }}>
+                {r.display_name}
+              </span>
+            </div>
+            {isYou && <span className="you-tag">you</span>}
+          </li>
+        );
+      })}
     </ul>
   );
 }
